@@ -237,6 +237,82 @@ object "MultiSig" {
             // ============================================================
             // INTERNAL FUNCTIONS
             // ============================================================
+
+            function _addApprover(_txId, _approver) {
+                let _txIndex := sload(slot(_txId, 5, 0))
+                let _isApprovedSlot := approverSlot(_txId, _approver)
+                if sload(_isApprovedSlot) {
+                    revertWithCustom(0x101f817a)
+                }
+
+                sstore(_isApprovedSlot, 1)
+                
+                // Update the transaction's approvals count
+                let _txPackedSlot := add(txBaseSlot(_txIndex), 4)
+                let _packed := sload(_txPackedSlot)
+                
+                let _newApprovals := add(and(shr(0x08, _packed), 0xff), 1)
+                let _cleared := and(_packed, not(shl(0x08, 0xff)))
+                let _updated := or(_cleared, shl(0x08, _newApprovals))
+
+                sstore(_txPackedSlot, _updated)
+            }
+
+            function _removeApprover(_txId, _approver) {
+                let _txIndex := sload(slot(_txId, 5, 0))
+                let _isApprovedSlot := approverSlot(_txId, _approver)
+                if iszero(sload(_isApprovedSlot)) {
+                    revertWithCustom(0x65f84cc0)
+                }
+
+                sstore(_isApprovedSlot, 0)
+
+                // Update the transaction's approvals count
+                let _txPackedSlot := add(txBaseSlot(_txIndex), 4)
+                let _packed := sload(_txPackedSlot)
+                
+                let _newApprovals := sub(and(shr(0x08, _packed), 0xff), 1)
+                let _cleared := and(_packed, not(shl(0x08, 0xff)))
+                let _updated := or(_cleared, shl(0x08, _newApprovals))
+
+                sstore(_txPackedSlot, _updated)
+            }
+
+            function _addRejector(_txId, _rejector) {
+                let _txIndex := sload(slot(_txId, 5, 0))
+                let _isRejectedSlot := rejectorSlot(_txId, _rejector)
+                if sload(_isRejectedSlot) {
+                    revertWithCustom(0x4582a780)
+                }
+
+                sstore(_isRejectedSlot, 1)
+
+                // Update the transaction's rejections count
+                let _txPackedSlot := add(txBaseSlot(_txIndex), 4)
+                let _packed := sload(_txPackedSlot)
+
+                let _newRejections := add(and(shr(0x10, _packed), 0xff), 1)
+                let _cleared := and(_packed, not(shl(0x10, 0xff)))
+                let _updated := or(_cleared, shl(0x10, _newRejections))
+            }
+
+            function _removeRejector(_txId, _rejector) {
+                let _txIndex := sload(slot(_txId, 5, 0))
+                let _isRejectedSlot := rejectorSlot(_txId, _rejector)
+                if sload(_isRejectedSlot) {
+                    revertWithCustom(0x4582a780)
+                }
+
+                sstore(_isRejectedSlot, 0)
+
+                // Update the transaction's rejections count
+                let _txPackedSlot := add(txBaseSlot(_txIndex), 4)
+                let _packed := sload(_txPackedSlot)
+
+                let _newRejections := sub(and(shr(0x10, _packed), 0xff), 1)
+                let _cleared := and(_packed, not(shl(0x10, 0xff)))
+                let _updated := or(_cleared, shl(0x10, _newRejections))
+            }
         }
     }
 }
