@@ -57,10 +57,10 @@ object "MultiSig" {
             case 0x05bf37aa { rejectTransaction() }
             case 0xfe0d94c1 { execute() }
             case 0xd0e30db0 { deposit() }
-            case 0x1dd46c1e { getTxCount() }
-            case 0x73ff81cc { getOwnersCount() }
+            case 0x1dd46c1e { output(getTxCount(), 0x20) }
+            case 0x73ff81cc { output(getOwnersCount(), 0x20) }
             case 0xa0e67e2b { getOwners() }
-            case 0xc41a360a { getOwner() }
+            case 0xc41a360a { output(getOwner(), 0x20) }
             case 0x33ea3dc8 { getTransaction() }
             case 0x329a27e7 { getWalletBalance() }
             case 0xe1254fba { getDeposit() }
@@ -126,10 +126,38 @@ object "MultiSig" {
             function rejectTransaction()   { revert(0, 0) }
             function execute()             { revert(0, 0) }
             function deposit()             { revert(0, 0) }
-            function getTxCount()          { revert(0, 0) }
-            function getOwnersCount()      { revert(0, 0) }
-            function getOwners()           { revert(0, 0) }
-            function getOwner()            { revert(0, 0) }
+
+            function getTxCount() -> c {
+                c := sload(6)
+            }
+
+            function getOwnersCount() -> c {
+                c := sload(0)
+            }
+
+            function getOwners() {
+                requireOwner()
+
+                let _len := sload(0)
+                let _arrSize := add(mul(_len, 32), 0x40)
+                let _ptr := allocate(_arrSize)
+                
+                mstore(_ptr, 0x20)
+                mstore(add(_ptr, 0x20), _len)
+
+                for {let i := 0} lt(i, _len) {i := add(i, 1)} {
+                    let _owner := sload(slot(0, i, 1))
+                    mstore(add(_ptr, add(mul(i, 32), 0x40)), _owner)
+                }
+
+                return(_ptr, _arrSize)
+            }
+
+            function getOwner() -> o {
+                let _owner := sload(slot(0, calldataload(4), 1))
+                o := and(_owner, 0xffffffffffffffffffffffffffffffffffffffff)
+            }
+
             function getTransaction()      { revert(0, 0) }
             function getWalletBalance()    { revert(0, 0) }
             function getDeposit()          { revert(0, 0) }
@@ -191,6 +219,12 @@ object "MultiSig" {
 
             function depositBaseSlot(_addr) -> _s {
                 _s := slot(_addr, 7, 0)
+            }
+
+            function output(_value, _size) {
+                let _ptr := allocate(_size)
+                mstore(_ptr, _value)
+                return(_ptr, _size)
             }
 
             // ============================================================
