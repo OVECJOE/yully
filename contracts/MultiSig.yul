@@ -154,7 +154,14 @@ object "MultiSig" {
             }
 
             function getOwner() -> o {
-                let _owner := sload(slot(0, calldataload(4), 1))
+                requireOwner()
+    
+                let _index := calldataload(4)
+                if iszero(lt(_index, sload(0))) { 
+                    revertWithCustom(0xd2529034)
+                } // keccak256("InvalidParam()") => 0xd2529034
+
+                let _owner := sload(slot(0, _index, 1))
                 o := and(_owner, 0xffffffffffffffffffffffffffffffffffffffff)
             }
 
