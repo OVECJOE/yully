@@ -313,6 +313,19 @@ object "MultiSig" {
                 let _cleared := and(_packed, not(shl(0x10, 0xff)))
                 let _updated := or(_cleared, shl(0x10, _newRejections))
             }
+
+            function _hasReachedLimit(_txId) -> s {
+                let _txIndex := sload(slot(_txId, 5, 0))
+                let _txPackedSlot := add(txBaseSlot(_txIndex), 4)
+                let _packed := sload(_txPackedSlot)
+                
+                let _approvals := and(shr(0x08, _packed), 0xff)
+                let _rejections := and(shr(0x10, _packed), 0xff)
+
+                if or(iszero(lt(_approvals, 2)), iszero(lt(_rejections, 2))) {
+                    s := 1
+                }
+            }
         }
     }
 }
